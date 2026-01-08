@@ -44,7 +44,7 @@ This repo includes `demo.mp3` for testing logic.
 > **demo.mp3 © 2025 Rhytam Biswas. All rights reserved.**
 > The demo audio file is **NOT** covered by the MIT License. It is included for demonstration purposes only. You cannot reuse, sample, or redistribute it without permission.
 >
-> Contact: weworkfortheo@gmail.com
+> Contact: rhytambiswas@gmail.com
 
 ## License & Credits
 
