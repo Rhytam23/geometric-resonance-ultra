@@ -13,6 +13,9 @@ This version includes various tweaks and modifications to the original code, but
 3.  Load a song (mp3/wav) or hit **Space** to play the included demo.
 4.  That’s it.
 
+OR
+Click these and enjoy [Geometric Resonance](https://rhytam23.github.io/geometric-resonance-ultra/)
+
 ## Controls
 
 | Key | Action |
