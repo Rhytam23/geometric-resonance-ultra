@@ -2,7 +2,7 @@
 
 This is a customised version of **Geometric Resonance**,  created by [Kyler Simzer](https://github.com/kylersimzer/Geometric-Resonance).
 
-It’s a single-file, local-first audio visualizer that runs right in your browser. No installs, no accounts, and definitely no uploading your files to some random server.
+It’s a single-file, local-first audio visualizer that runs right in your browser—no installs, no accounts, and definitely no uploading your files to some random server.
 
 This version includes various tweaks and modifications to the original code, but the core soul of the project remains true to Kyler's original vision.
 
