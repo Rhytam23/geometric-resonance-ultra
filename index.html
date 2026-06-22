@@ -1,440 +1,948 @@
-<!DOCTYPE html>
+<!doctype html>
+<!--
+Geometric Resonance — by Kyler Simzer
+License: MIT (see LICENSE)
+
+Attribution request (not required by the MIT License):
+If used commercially, please credit “Geometric Resonance by Kyler Simzer”.
+
+Demo audio:
+demo.mp3 © 2025 Kyler Simzer. All rights reserved.
+Not licensed under MIT. Demo/listening only. No reuse/redistribution without permission.
+-->
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Quantum Flux</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Geometric Resonance Ultra+</title>
+  <style>
+    @import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&f[]=inter@300,400,500,600,700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 
-    <meta name="google-site-verification" content="H1RxcPFfU4EwlRMEc756uThyEvNJtzXU13KphSeCH5o">
-    <meta name="description"
-        content="Quantum Flux is an interactive particle gravity experiment built with WebGL, Three.js, and WebAssembly. Experience real-time physics and creative coding directly in the browser.">
-    <meta name="keywords"
-        content="particle gravity, webgl particles, three.js, webassembly, wasm, creative coding, physics simulation, browser graphics">
-    <meta name="author" content="Yogender">
-    <meta name="robots" content="index, follow">
+    :root {
+      --glass-bg: rgba(5, 5, 8, 0.4);
+      --glass-border: rgba(255, 255, 255, 0.05);
+      --glass-blur: blur(40px);
+      --accent: rgba(255, 255, 255, 0.85);
+      --accent-glow: rgba(255, 255, 255, 0.15);
+      --text-primary: rgba(255, 255, 255, 0.90);
+      --text-secondary: rgba(255, 255, 255, 0.45);
+      --text-muted: rgba(255, 255, 255, 0.25);
+      --font-heading: 'Satoshi', 'IBM Plex Sans', sans-serif;
+      --font-body: 'Inter', 'IBM Plex Sans', sans-serif;
+      --panel-transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      --item-transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-    <meta property="og:title" content="Quantum Flux – Particle Gravity Fun">
-    <meta property="og:description"
-        content="An interactive particle gravity experiment built with WebGL, Three.js, and WebAssembly (WASM).">
-    <meta property="og:image" content="https://particle-gravity-fun.pages.dev/demo.gif">
-    <meta property="og:url" content="https://particle-gravity-fun.pages.dev">
-    <meta property="og:type" content="website">
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; background: #010103; font-family: var(--font-body); -webkit-font-smoothing: antialiased; }
+    
+    #canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 
-    <style>
-        :root {
-            --bg: #030712;
-            --panel: rgba(12, 12, 18, 0.10);
-            --panel-strong: rgba(12, 12, 18, 0.13);
-            --border: rgba(255, 255, 255, 0.09);
-            --border-accent: rgba(116, 248, 255, 0.18);
-            --text: rgba(255, 255, 255, 0.90);
-            --muted: rgba(255, 255, 255, 0.55);
-            --accent: #74f8ff;
-            --accent-soft: rgba(116, 248, 255, 0.12);
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0,0,0,0.10);
-            --hud-blur: 20px;
-            --hud-radius: 1.5rem;
-            --hud-opacity-idle: 0.72;
-            --hud-opacity-active: 1;
-            --float-duration: 4.8s;
-        }
+    /* Onboarding Overlay */
+    #onboarding-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(1, 1, 3, 0.86); z-index: 1000;
+      backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 1.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 1.5s;
+    }
+    #onboarding-overlay.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
+    .onboarding-content {
+      text-align: center; max-width: 600px; padding: 40px;
+      display: flex; flex-direction: column; align-items: center; gap: 32px;
+    }
+    .onboarding-title {
+      font-family: var(--font-heading); font-size: 42px; font-weight: 300; letter-spacing: 0.25em;
+      color: var(--text-primary); text-transform: uppercase;
+      opacity: 0; transform: translateY(20px);
+      animation: revealText 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
+    }
+    .onboarding-subtitle {
+      font-family: var(--font-body); font-size: 14px; font-weight: 300; letter-spacing: 0.1em;
+      color: var(--text-secondary); line-height: 1.6;
+      opacity: 0; transform: translateY(15px);
+      animation: revealText 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.5s;
+    }
+    .onboarding-instructions {
+      display: flex; flex-direction: column; gap: 14px; margin: 10px 0;
+      opacity: 0; transform: translateY(10px);
+      animation: revealText 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.8s;
+    }
+    .instruction-item {
+      font-family: var(--font-body); font-size: 11px; font-weight: 400; letter-spacing: 0.15em;
+      color: var(--text-muted); text-transform: uppercase;
+    }
+    .onboarding-btn {
+      padding: 16px 36px; border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.03); color: var(--text-primary);
+      font-family: var(--font-body); font-size: 10px; font-weight: 400; letter-spacing: 0.2em;
+      text-transform: uppercase; cursor: pointer; border-radius: 30px;
+      transition: var(--item-transition); backdrop-filter: blur(10px);
+      opacity: 0; transform: translateY(10px);
+      animation: revealText 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards 1.1s;
+    }
+    .onboarding-btn:hover {
+      background: var(--text-primary); color: #000; border-color: var(--text-primary);
+      box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+    }
+    @keyframes revealText {
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-        * {
-            box-sizing: border-box;
-        }
+    /* Spatial UI Shell */
+    .ui-wrapper {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 10;
+      pointer-events: none; transition: opacity 0.8s ease-in-out;
+      opacity: 1;
+    }
+    .ui-wrapper.hidden { opacity: 0; }
+    .ui-wrapper * { pointer-events: auto; }
 
-        html,
-        body {
-            margin: 0;
-            width: 100%;
-            min-height: 100%;
-        }
+    /* Left Panel - Settings Drawer */
+    .left-panel {
+      position: fixed; top: 30px; left: 30px; bottom: 120px; width: 340px;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 20px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      display: flex; flex-direction: column; overflow: hidden;
+      transform: translateX(0); transition: var(--panel-transition);
+    }
+    .ui-wrapper.hidden .left-panel { transform: translateX(-380px); }
+    
+    .panel-header {
+      padding: 24px 28px 16px; border-bottom: 1px solid rgba(255,255,255,0.03);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .panel-title {
+      font-family: var(--font-heading); font-size: 13px; font-weight: 500;
+      letter-spacing: 0.15em; color: var(--text-primary); text-transform: uppercase;
+    }
 
-        body {
-            overflow: hidden;
-            background:
-                radial-gradient(circle at top, rgba(47, 79, 130, 0.18), transparent 35%),
-                linear-gradient(180deg, #040611 0%, #02040a 100%);
-            color: var(--text);
-            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
+    .panel-tabs {
+      display: flex; padding: 6px 12px; gap: 4px; overflow-x: auto;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      scrollbar-width: none;
+    }
+    .panel-tabs::-webkit-scrollbar { display: none; }
+    .panel-tab {
+      padding: 8px 14px; border: none; background: transparent;
+      color: var(--text-secondary); font-family: var(--font-body);
+      font-size: 9px; font-weight: 500; letter-spacing: 0.1em;
+      text-transform: uppercase; cursor: pointer; border-radius: 12px;
+      white-space: nowrap; transition: var(--item-transition);
+    }
+    .panel-tab:hover { color: var(--text-primary); }
+    .panel-tab.active { background: rgba(255, 255, 255, 0.05); color: var(--text-primary); }
 
-        canvas {
-            display: block;
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
+    .panel-content { flex: 1; overflow-y: auto; padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+    .panel-content::-webkit-scrollbar { width: 4px; }
+    .panel-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .panel-section { display: none; flex-direction: column; gap: 20px; }
+    .panel-section.active { display: flex; }
 
-        button,
-        a {
-            -webkit-tap-highlight-color: transparent;
-        }
+    /* Right Panel - Adaptive Floating HUD */
+    .right-hud {
+      position: fixed; top: 30px; right: 30px; width: 280px;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 20px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      padding: 24px 28px; display: flex; flex-direction: column; gap: 18px;
+      transform: translateX(0); transition: var(--panel-transition);
+    }
+    .ui-wrapper.hidden .right-hud { transform: translateX(340px); }
 
-        .app-shell {
-            position: fixed;
-            inset: 0;
-            z-index: 2;
-            pointer-events: none;
-        }
+    .hud-title {
+      font-family: var(--font-heading); font-size: 11px; font-weight: 500;
+      letter-spacing: 0.2em; color: var(--text-secondary); text-transform: uppercase;
+      margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .hud-stage {
+      font-size: 18px; font-family: var(--font-heading); font-weight: 400;
+      letter-spacing: 0.05em; color: var(--text-primary); text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 12px;
+    }
+    .hud-row { display: flex; justify-content: space-between; align-items: center; font-size: 10px; letter-spacing: 0.08em; }
+    .hud-label { color: var(--text-secondary); font-family: var(--font-body); font-weight: 400; text-transform: uppercase; }
+    .hud-value { color: var(--text-primary); font-family: var(--font-body); font-weight: 500; text-align: right; }
 
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: max(1rem, env(safe-area-inset-top)) 1rem 0;
-        }
+    /* Bottom Panel - Scrubber & Track Bar */
+    .bottom-panel {
+      position: fixed; bottom: 30px; left: 30px; right: 30px; height: 74px;
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 20px; backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; transform: translateY(0); transition: var(--panel-transition);
+    }
+    .ui-wrapper.hidden .bottom-panel { transform: translateY(120px); }
 
-        .hero-copy {
-            max-width: min(38rem, calc(100vw - 7rem));
-            padding: 1rem 1.1rem;
-            border: 1px solid var(--border);
-            border-radius: var(--hud-radius);
-            background: rgba(12, 12, 20, 0.10);
-            backdrop-filter: blur(var(--hud-blur));
-            -webkit-backdrop-filter: blur(var(--hud-blur));
-            box-shadow: var(--shadow);
-            pointer-events: auto;
-            opacity: var(--hud-opacity-idle);
-            transition: opacity 0.35s ease;
-        }
+    .player-left { display: flex; align-items: center; gap: 18px; width: 30%; overflow: hidden; }
+    .player-center { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 40%; }
+    .player-right { display: flex; align-items: center; justify-content: flex-end; gap: 14px; width: 30%; }
 
-        .hero-copy:hover {
-            opacity: var(--hud-opacity-active);
-        }
+    /* Timeline & Waveform Scrubber */
+    .scrubber-container { width: 100%; display: flex; align-items: center; gap: 12px; }
+    .scrubber-time { font-family: var(--font-body); font-size: 9px; color: var(--text-secondary); width: 40px; text-align: center; letter-spacing: 0.05em; }
+    .scrubber-bar-wrapper { flex: 1; height: 18px; display: flex; align-items: center; position: relative; cursor: pointer; }
+    .scrubber-bar-bg { width: 100%; height: 2px; background: rgba(255, 255, 255, 0.08); border-radius: 1px; position: relative; }
+    .scrubber-bar-fill { height: 100%; background: var(--text-primary); width: 0%; border-radius: 1px; position: absolute; top: 0; left: 0; transition: width 0.1s linear; }
+    .scrubber-handle {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--text-primary);
+      position: absolute; top: 50%; transform: translate(-50%, -50%); left: 0%;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.8); opacity: 0; transition: opacity 0.2s, left 0.1s linear;
+    }
+    .scrubber-bar-wrapper:hover .scrubber-handle { opacity: 1; }
+    .scrubber-bar-wrapper:hover .scrubber-bar-bg { height: 4px; }
 
-        .eyebrow {
-            margin: 0 0 0.45rem;
-            color: var(--accent);
-            text-transform: uppercase;
-            letter-spacing: 0.18em;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
+    /* Controls & Buttons */
+    .btn {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+      color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: var(--item-transition); border-radius: 50%;
+    }
+    .btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); transform: scale(1.05); }
+    .btn:active { transform: scale(0.95); }
+    .btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+    
+    .btn-circle { width: 40px; height: 40px; }
+    .btn-large { width: 48px; height: 48px; background: rgba(255, 255, 255, 0.06); }
+    .btn-rect { padding: 10px 18px; border-radius: 20px; font-family: var(--font-body); font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; gap: 8px; }
 
-        .hero-copy h1 {
-            margin: 0;
-            font-size: clamp(1.15rem, 1rem + 1.3vw, 2rem);
-            line-height: 1.15;
-        }
+    /* Sliders and Toggles style */
+    .control-group { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+    .control-label-row { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); font-family: var(--font-body); }
+    .control-val { color: var(--text-primary); }
 
-        .instruction {
-            margin: 0.65rem 0 0;
-            color: var(--muted);
-            font-size: clamp(0.9rem, 0.85rem + 0.35vw, 1rem);
-            line-height: 1.5;
-        }
+    input[type="range"] {
+      -webkit-appearance: none; width: 100%; height: 2px;
+      background: rgba(255,255,255,0.08); border-radius: 1px; cursor: pointer; outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%;
+      background: var(--text-primary); border: none; transition: transform 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
 
-        .socials {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-            pointer-events: auto;
-        }
+    select {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+      border-radius: 10px; padding: 10px 14px; color: var(--text-primary);
+      font-family: var(--font-body); font-size: 11px; cursor: pointer; outline: none; width: 100%;
+      transition: var(--item-transition);
+    }
+    select:hover { border-color: rgba(255,255,255,0.15); }
+    select option { background: #09090e; color: #fff; }
 
-        .social-link,
-        button {
-            appearance: none;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: rgba(12, 12, 20, 0.08);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-            color: var(--text);
-            text-decoration: none;
-            font: inherit;
-            letter-spacing: 0.02em;
-            transition:
-                transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-                background 0.28s ease,
-                border-color 0.28s ease,
-                box-shadow 0.28s ease,
-                opacity 0.28s ease;
-            opacity: var(--hud-opacity-idle);
-        }
+    .toggle-row { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+    .toggle-switch {
+      width: 36px; height: 20px; background: rgba(255,255,255,0.06);
+      border-radius: 10px; cursor: pointer; position: relative; transition: background 0.3s;
+    }
+    .toggle-switch.active { background: rgba(255,255,255,0.25); }
+    .toggle-switch::after {
+      content: ''; position: absolute; width: 14px; height: 14px;
+      background: var(--text-primary); border-radius: 50%; top: 3px; left: 3px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toggle-switch.active::after { transform: translateX(16px); }
 
-        .social-link {
-            padding: 0.7rem 0.95rem;
-            text-align: center;
-            min-width: 7.5rem;
-        }
+    /* Drag over Highlight Border */
+    #drag-border {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      border: 0px solid rgba(255, 255, 255, 0.15); border-radius: 0px;
+      pointer-events: none; z-index: 1001; transition: border-width 0.3s, border-color 0.3s;
+    }
+    body.drag-active #drag-border { border-width: 8px; border-color: rgba(255, 255, 255, 0.25); }
 
-        button {
-            padding: 0.75rem 1.05rem;
-            cursor: pointer;
-        }
+    /* Marquee text */
+    .marquee-container { width: 100%; overflow: hidden; display: flex; align-items: center; }
+    .marquee-text {
+      white-space: nowrap; font-family: var(--font-heading); font-size: 12px; font-weight: 400;
+      letter-spacing: 0.1em; color: var(--text-primary); text-transform: uppercase;
+      display: inline-block; padding-left: 100%; animation: marquee 15s linear infinite;
+    }
+    @keyframes marquee { 0% { transform: translate3d(0, 0, 0); } 100% { transform: translate3d(-100%, 0, 0); } }
 
-        button:hover,
-        button:focus-visible,
-        .social-link:hover,
-        .social-link:focus-visible {
-            transform: translateY(-3px);
-            border-color: var(--border-accent);
-            background: rgba(116, 248, 255, 0.06);
-            box-shadow:
-                0 0 0 1px rgba(116, 248, 255, 0.10),
-                0 4px 18px rgba(116, 248, 255, 0.08),
-                0 8px 24px rgba(0, 0, 0, 0.14);
-            opacity: var(--hud-opacity-active);
-            outline: none;
-        }
+    /* Preset Modal styled glass */
+    #preset-modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: var(--glass-bg); border: 1px solid var(--glass-border);
+      border-radius: 20px; padding: 28px; z-index: 200; display: none;
+      backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+      min-width: 320px; box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+    }
 
-        button.active {
-            border-color: rgba(116, 248, 255, 0.38);
-            background: rgba(116, 248, 255, 0.07);
-            box-shadow:
-                0 0 0 1px rgba(116, 248, 255, 0.14),
-                0 2px 12px rgba(116, 248, 255, 0.10),
-                inset 0 0 12px rgba(116, 248, 255, 0.04);
-            opacity: var(--hud-opacity-active);
-            color: var(--accent);
-        }
+    /* Tooltips */
+    [data-tooltip] { position: relative; }
+    [data-tooltip]::before {
+      content: attr(data-tooltip); position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+      padding: 6px 10px; background: rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-primary); font-family: var(--font-body); font-size: 8px; font-weight: 500;
+      letter-spacing: 0.08em; border-radius: 6px; white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity 0.2s; z-index: 1000; text-transform: uppercase;
+    }
+    [data-tooltip]:hover::before { opacity: 1; }
 
-        .control-dock {
-            position: fixed;
-            left: 50%;
-            bottom: max(1rem, env(safe-area-inset-bottom));
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            width: min(calc(100vw - 1.5rem), 62rem);
-            padding: 0.65rem 0.85rem;
-            border: 1px solid var(--border);
-            border-radius: var(--hud-radius);
-            background: var(--panel-strong);
-            backdrop-filter: blur(var(--hud-blur));
-            -webkit-backdrop-filter: blur(var(--hud-blur));
-            box-shadow:
-                0 2px 20px rgba(0, 0, 0, 0.14),
-                0 0 0 0.5px rgba(255, 255, 255, 0.05),
-                inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
-            pointer-events: auto;
-            opacity: var(--hud-opacity-idle);
-            animation: hud-float var(--float-duration) ease-in-out infinite;
-            transition: opacity 0.35s ease;
-        }
+    /* Micro indicators */
+    .indicator-mic { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00ffb3; margin-left: 6px; box-shadow: 0 0 8px #00ffb3; animation: pulseMic 1.2s ease-in-out infinite; }
+    @keyframes pulseMic { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
 
-        .control-dock:hover {
-            opacity: var(--hud-opacity-active);
-            animation-play-state: paused;
-        }
+    /* Recording Overlay panel */
+    #rec-overlay {
+      position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+      background: rgba(255, 0, 80, 0.15); border: 1px solid rgba(255, 0, 80, 0.3);
+      padding: 12px 24px; border-radius: 30px; display: none; align-items: center; gap: 12px;
+      backdrop-filter: blur(20px); z-index: 100; box-shadow: 0 10px 30px rgba(255,0,80,0.2);
+    }
+    .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ff0050; animation: pulse 1s infinite; }
+    .rec-text { font-family: var(--font-body); font-size: 10px; font-weight: 500; color: #fff; letter-spacing: 0.1em; text-transform: uppercase; }
 
-        .controls {
-            flex: 1;
-            display: flex;
-            gap: 0.7rem;
-            overflow-x: auto;
-            scrollbar-width: none;
-        }
+    /* Responsive scaling rules */
+    @media (max-width: 768px) {
+      .left-panel { top: 15px; left: 15px; width: calc(100% - 30px); height: auto; max-height: 40%; bottom: auto; }
+      .right-hud { top: auto; bottom: 120px; right: 15px; width: calc(100% - 30px); height: auto; padding: 16px 20px; }
+      .bottom-panel { bottom: 15px; left: 15px; right: 15px; height: auto; padding: 14px 20px; flex-direction: column; gap: 14px; }
+      .player-left, .player-center, .player-right { width: 100%; justify-content: center; }
+      .marquee-container { justify-content: center; }
+    }
+  </style>
 
-        .controls::-webkit-scrollbar {
-            display: none;
-        }
-
-        .controls button {
-            flex: 0 0 auto;
-            white-space: nowrap;
-        }
-
-        .icon-button {
-            flex: 0 0 auto;
-            min-width: 8rem;
-        }
-
-        .footer {
-            position: fixed;
-            right: 1rem;
-            bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 5.8rem);
-            color: rgba(255, 255, 255, 0.45);
-            font-size: 0.83rem;
-            pointer-events: none;
-        }
-
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            padding: 0.9rem 1.2rem;
-            border: 1px solid rgba(116, 248, 255, 0.32);
-            border-radius: 999px;
-            background: rgba(5, 10, 18, 0.72);
-            color: var(--accent);
-            font-size: 0.92rem;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            box-shadow: 0 12px 42px rgba(0, 0, 0, 0.28);
-            animation: pulse 1.35s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        .input_video {
-            display: none;
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 0.5;
-                transform: translate(-50%, -50%) scale(0.98);
-            }
-
-            50% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1.02);
-            }
-        }
-
-        @keyframes hud-float {
-            0%,
-            100% {
-                transform: translateX(-50%) translateY(0px);
-            }
-
-            50% {
-                transform: translateX(-50%) translateY(-4px);
-            }
-        }
-
-        @media (max-width: 900px) {
-            .top-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .hero-copy {
-                max-width: none;
-            }
-
-            .socials {
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-
-            .social-link {
-                min-width: 0;
-            }
-        }
-
-        @media (max-width: 700px) {
-            .top-bar {
-                padding-inline: 0.75rem;
-            }
-
-            .hero-copy {
-                padding: 0.9rem 1rem;
-            }
-
-            .control-dock {
-                left: 0.75rem;
-                right: 0.75rem;
-                width: auto;
-                transform: none;
-                flex-direction: column;
-                align-items: stretch;
-                gap: 0.7rem;
-                padding: 0.7rem;
-                border-radius: 1.1rem;
-            }
-
-            .controls {
-                gap: 0.55rem;
-            }
-
-            .controls button,
-            .icon-button {
-                min-height: 2.85rem;
-            }
-
-            .footer {
-                right: 0.85rem;
-                bottom: calc(max(1rem, env(safe-area-inset-bottom)) + 8.4rem);
-                font-size: 0.75rem;
-            }
-        }
-
-        @media (max-width: 520px) {
-            .hero-copy {
-                max-width: calc(100vw - 1.5rem);
-            }
-
-            .socials {
-                gap: 0.55rem;
-            }
-
-            .social-link {
-                flex: 1 1 calc(50% - 0.55rem);
-            }
-
-            .footer {
-                display: none;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-                scroll-behavior: auto !important;
-            }
-        }
-    </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script type="importmap">
+    { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    } }
+  </script>
 </head>
 
 <body>
-    <main class="app-shell">
-        <div id="loading" role="status" aria-live="polite">Initializing particle field…</div>
+  <div id="drag-border"></div>
+  
+  <div id="onboarding-overlay">
+    <div class="onboarding-content">
+      <h1 class="onboarding-title">Geometric Resonance</h1>
+      <p class="onboarding-subtitle">An immersive audio-reactive generative art experience.</p>
+      <div class="onboarding-instructions">
+        <div class="instruction-item">Upload music or toggle microphone</div>
+        <div class="instruction-item">Move your cursor to warp space</div>
+        <div class="instruction-item">Explore the emotional resonance</div>
+      </div>
+      <button class="onboarding-btn" id="start-btn">Enter Experience</button>
+    </div>
+  </div>
 
-        <header class="top-bar">
-            <div class="hero-copy">
-                <p class="eyebrow">Quantum Flux</p>
-                <h1>Interactive particle gravity playground</h1>
-                <p id="instruction" class="instruction">
-                    Drag with mouse or touch to pull particles. Press and hold to energize the colors.
-                </p>
+  <div id="rec-overlay">
+    <div class="rec-dot"></div>
+    <div class="rec-text" id="rec-status">Recording (15s)</div>
+  </div>
+
+  <div id="preset-modal">
+    <h3 style="color:rgba(255,255,255,0.85);font-weight:300;margin-bottom:18px;letter-spacing:0.15em;font-size:14px;font-family:var(--font-heading);">PRESETS</h3>
+    <input type="text" id="preset-name" placeholder="Preset name..." style="width:100%;padding:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#fff;margin-bottom:14px;font-family:var(--font-body);" />
+    <div id="preset-list" style="max-height:220px;overflow-y:auto;margin-bottom:14px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-rect" onclick="savePreset()">Save</button>
+      <button class="btn btn-rect" onclick="closePresetModal()">Close</button>
+    </div>
+  </div>
+
+  <div class="ui-wrapper" id="ui-wrapper">
+    <!-- Left panel for configurations -->
+    <div class="left-panel">
+      <div class="panel-header">
+        <div class="panel-title">Installation Settings</div>
+        <button class="btn btn-circle" id="randomBtn" title="Randomize Parameters" data-tooltip="Randomize Settings">
+          <svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+        </button>
+      </div>
+
+      <div class="panel-tabs">
+        <button class="panel-tab active" data-sec="tab-main">Visuals</button>
+        <button class="panel-tab" data-sec="tab-audio">Audio</button>
+        <button class="panel-tab" data-sec="tab-theme">Themes</button>
+        <button class="panel-tab" data-sec="tab-env">Scene</button>
+        <button class="panel-tab" data-sec="tab-fx">Effects</button>
+        <button class="panel-tab" data-sec="tab-layers">Layers</button>
+      </div>
+
+      <div class="panel-content">
+        <!-- TAB MAIN -->
+        <div class="panel-section active" id="tab-main">
+          <div class="control-group">
+            <div class="control-label-row"><span>Story Stage</span></div>
+            <select id="storyModeSelect">
+              <option value="auto" selected>Auto Cycle</option>
+              <option value="birth">Birth (Minimal)</option>
+              <option value="chaos">Chaos (Violent)</option>
+              <option value="sync">Synchronization</option>
+              <option value="expansion">Expansion</option>
+              <option value="harmony">Harmony (Meditative)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Geometry Form</span></div>
+            <select id="form">
+              <option value="icosahedron">Icosahedron</option>
+              <option value="octahedron">Octahedron</option>
+              <option value="tetrahedron">Tetrahedron</option>
+              <option value="dodecahedron">Dodecahedron</option>
+              <option value="torus">Torus</option>
+              <option value="torusKnot">Torus Knot</option>
+              <option value="sphere">Sphere</option>
+              <option value="hyperboloid">Hyperboloid</option>
+              <option value="mobius">Möbius Strip</option>
+              <option value="kleinBottle">Klein Bottle</option>
+              <option value="gyroid">Gyroid Surface</option>
+              <option value="cliffordTorus">Clifford Torus</option>
+              <option value="hopfFibration">Hopf Fibration</option>
+              <option value="seashell">Seashell</option>
+              <option value="diniSurface">Dini Surface</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Visual Mode</span></div>
+            <select id="visualMode">
+              <option value="standard">Standard View</option>
+              <option value="kaleidoscope">Kaleidoscope</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Complexity</span><span class="control-val" id="val-density">3</span></div>
+            <input type="range" id="density" min="1" max="5" step="1" value="3" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Sensitivity</span><span class="control-val" id="val-sensitivity">1.2</span></div>
+            <input type="range" id="sensitivity" min="0.2" max="3" step="0.1" value="1.2" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Smoothness</span><span class="control-val" id="val-smoothness">0.7</span></div>
+            <input type="range" id="smoothness" min="0" max="1" step="0.05" value="0.7" />
+          </div>
+
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Continuous Spin</span></div>
+            <div class="toggle-switch active" id="toggleModelSpin"></div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Spin Speed</span><span class="control-val" id="val-spin-speed">1.0</span></div>
+            <input type="range" id="modelSpinSpeed" min="0" max="2" step="0.01" value="1" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Spin Axis</span></div>
+            <select id="modelSpinAxis">
+              <option value="y">Y Only (Stable)</option>
+              <option value="xyz" selected>XYZ (Complex)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Reactive Spin</span></div>
+            <div class="toggle-switch active" id="toggleModelSpinReactive"></div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Reactive Spin Amt</span><span class="control-val" id="val-spin-reactive">1.0</span></div>
+            <input type="range" id="modelSpinReactivity" min="0" max="1" step="0.01" value="1" />
+          </div>
+
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Model Pulse</span></div>
+            <div class="toggle-switch active" id="toggleModelPulse"></div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Pulse Amt</span><span class="control-val" id="val-pulse-amount">1.0</span></div>
+            <input type="range" id="modelPulseAmount" min="0" max="1" step="0.01" value="1" />
+          </div>
+        </div>
+
+        <!-- TAB AUDIO -->
+        <div class="panel-section" id="tab-audio">
+          <div class="control-group">
+            <div class="control-label-row"><span>Source Selection</span></div>
+            <select id="audioSourceType">
+              <option value="file" selected>Audio File Upload</option>
+              <option value="mic">Microphone (Live In)</option>
+            </select>
+          </div>
+
+          <div class="control-group" id="fileUploadContainer">
+            <div class="control-label-row"><span>Upload Track</span></div>
+            <div style="position:relative; width: 100%;">
+              <button class="btn btn-rect" style="width:100%;">
+                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Select Audio File
+              </button>
+              <input type="file" accept="audio/*" id="file" style="position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer;" />
             </div>
+          </div>
 
-            <nav id="socials" class="socials" aria-label="Project links">
-                <a href="https://github.com/yogender-ai/Particle-Gravity-Fun" target="_blank" rel="noreferrer"
-                    class="social-link">GitHub</a>
-                <a href="https://www.linkedin.com/in/yogender1/" target="_blank" rel="noreferrer"
-                    class="social-link">LinkedIn</a>
-            </nav>
-        </header>
+          <div class="control-group">
+            <div class="control-label-row"><span>Volume</span><span class="control-val" id="val-volume">0.8</span></div>
+            <input type="range" id="volume" min="0" max="1" step="0.01" value="0.8" />
+          </div>
+        </div>
 
-        <video class="input_video" aria-hidden="true"></video>
+        <!-- TAB THEME -->
+        <div class="panel-section" id="tab-theme">
+          <div class="control-group">
+            <div class="control-label-row"><span>Palette Theme</span></div>
+            <select id="colorTheme">
+              <option value="void">Void</option>
+              <option value="ember">Ember</option>
+              <option value="arctic">Arctic</option>
+              <option value="neon">Neon</option>
+              <option value="sunset">Sunset</option>
+              <option value="forest">Forest</option>
+              <option value="vapor">Vaporwave</option>
+              <option value="gold">Gold</option>
+              <option value="blood">Blood</option>
+              <option value="ocean">Ocean</option>
+              <option value="aurora">Aurora</option>
+              <option value="holographic">Holographic</option>
+              <option value="plasma">Plasma</option>
+              <option value="infrared">Infrared</option>
+              <option value="bioluminescent">Bioluminescent</option>
+            </select>
+          </div>
 
-        <section class="control-dock" aria-label="Particle shapes">
-            <div class="controls" role="toolbar" aria-label="Visual modes">
-                <button type="button" data-mode="swarm" class="active" aria-pressed="true">Swarm</button>
-                <button type="button" data-mode="heart" aria-pressed="false">Heart</button>
-                <button type="button" data-mode="saturn" aria-pressed="false">Saturn</button>
-                <button type="button" data-mode="flower" aria-pressed="false">Flower</button>
-                <button type="button" data-mode="fireworks" aria-pressed="false">Fireworks</button>
+          <div style="display:flex; justify-content:space-between; gap: 8px;">
+            <div class="control-group" style="align-items:center;">
+              <div class="control-label-row"><span>Primary</span></div>
+              <input type="color" id="colorPrimary" value="#ffffff" style="width:44px;height:32px;border:1px solid var(--glass-border);background:none;cursor:pointer;border-radius:6px;" />
             </div>
-            <button id="fullscreen-toggle" type="button" class="icon-button" aria-label="Toggle fullscreen"
-                title="Toggle fullscreen">Fullscreen</button>
-        </section>
+            <div class="control-group" style="align-items:center;">
+              <div class="control-label-row"><span>Secondary</span></div>
+              <input type="color" id="colorSecondary" value="#4488ff" style="width:44px;height:32px;border:1px solid var(--glass-border);background:none;cursor:pointer;border-radius:6px;" />
+            </div>
+            <div class="control-group" style="align-items:center;">
+              <div class="control-label-row"><span>Bg</span></div>
+              <input type="color" id="colorBg" value="#020204" style="width:44px;height:32px;border:1px solid var(--glass-border);background:none;cursor:pointer;border-radius:6px;" />
+            </div>
+          </div>
 
-        <footer class="footer">
-            <span>Created by Yogender</span>
-        </footer>
-    </main>
+          <div class="control-group">
+            <div class="control-label-row"><span>Reactivity</span><span class="control-val" id="val-color-reactivity">0.55</span></div>
+            <input type="range" id="colorReactivity" min="0" max="1" step="0.05" value="0.55" />
+          </div>
 
-    <script src="app.min.js"></script>
-</body>
+          <div class="control-group">
+            <div class="control-label-row"><span>Hue Rotation</span><span class="control-val" id="val-hue-rotate">0.0</span></div>
+            <input type="range" id="hueRotateSpeed" min="0" max="1" step="0.01" value="0" />
+          </div>
 
-</html>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Bar Lock Colors</span></div>
+            <div class="toggle-switch active" id="toggleBarLockColors"></div>
+          </div>
+        </div>
+
+        <!-- TAB ENVIRONMENT -->
+        <div class="panel-section" id="tab-env">
+          <div class="control-group">
+            <div class="control-label-row"><span>Active Environment</span></div>
+            <select id="environment">
+              <option value="void">Void</option>
+              <option value="grid">Grid Floor</option>
+              <option value="stars">Starfield</option>
+              <option value="nebula">Nebula Clouds</option>
+              <option value="matrix">Matrix Rain</option>
+              <option value="ocean">Deep Ocean</option>
+              <option value="crystal">Crystal Cave</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Fog Density</span><span class="control-val" id="val-fog-density">0.008</span></div>
+            <input type="range" id="fogDensity" min="0" max="0.05" step="0.002" value="0.008" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Space Rings</span><span class="control-val" id="val-ring-count">3</span></div>
+            <input type="range" id="ringCount" min="0" max="8" step="1" value="3" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Background Pattern</span></div>
+            <select id="bgPattern">
+              <option value="none" selected>None</option>
+              <option value="mandala">Mandala</option>
+              <option value="lattice">Lattice</option>
+              <option value="plasma">Plasma</option>
+              <option value="voronoi">Voronoi</option>
+              <option value="waves">Sine Waves</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Pattern Strength</span><span class="control-val" id="val-pattern-strength">0.35</span></div>
+            <input type="range" id="bgPatternStrength" min="0" max="1" step="0.05" value="0.35" />
+          </div>
+        </div>
+
+        <!-- TAB EFFECTS -->
+        <div class="panel-section" id="tab-fx">
+          <div class="control-group">
+            <div class="control-label-row"><span>Camera Mode</span></div>
+            <select id="cameraMode">
+              <option value="orbit">Smooth Orbit</option>
+              <option value="reactive">Reactive Motion</option>
+              <option value="cinematic">Cinematic Pan</option>
+              <option value="spiral">Spiral Path</option>
+              <option value="figure8">Figure 8</option>
+              <option value="vortex">Vortex Pull</option>
+              <option value="pendulum">Pendulum swing</option>
+              <option value="flythrough">Fly Through</option>
+              <option value="drunk">Handheld Shake</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Bloom Strength</span><span class="control-val" id="val-bloom-strength">0.8</span></div>
+            <input type="range" id="bloomStrength" min="0" max="3" step="0.05" value="0.8" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Bloom Radius</span><span class="control-val" id="val-bloom-radius">0.7</span></div>
+            <input type="range" id="bloomRadius" min="0" max="2" step="0.05" value="0.7" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Motion Trails</span></div>
+            <select id="trailMode">
+              <option value="none">None</option>
+              <option value="light">Light</option>
+              <option value="medium" selected>Medium</option>
+              <option value="heavy">Heavy</option>
+              <option value="smear">Infinite Smear</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Glitch Intensity</span><span class="control-val" id="val-glitch">0.0</span></div>
+            <input type="range" id="glitchAmount" min="0" max="1" step="0.05" value="0" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Chromatic Aberration</span><span class="control-val" id="val-aberration">0.08</span></div>
+            <input type="range" id="aberration" min="0" max="1" step="0.05" value="0.08" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Grain Strength</span><span class="control-val" id="val-grain">0.12</span></div>
+            <input type="range" id="grain" min="0" max="1" step="0.05" value="0.12" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Vignette Falloff</span><span class="control-val" id="val-vignette">0.35</span></div>
+            <input type="range" id="vignette" min="0" max="1" step="0.05" value="0.35" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Anamorphic Flare</span><span class="control-val" id="val-anamorphic">0.0</span></div>
+            <input type="range" id="anamorphic" min="0" max="1" step="0.05" value="0" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Retro Scanlines</span><span class="control-val" id="val-scanlines">0.0</span></div>
+            <input type="range" id="scanlines" min="0" max="1" step="0.05" value="0" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Film Look</span></div>
+            <select id="filmLook">
+              <option value="none">None</option>
+              <option value="cinematic">Cinematic</option>
+              <option value="vintage">Vintage Film</option>
+              <option value="neon">Neon Night</option>
+              <option value="dream">Dream Overlay</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- TAB LAYERS -->
+        <div class="panel-section" id="tab-layers">
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Wireframe Core</span></div>
+            <div class="toggle-switch active" id="toggleWireframe"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Rim Glow</span></div>
+            <div class="toggle-switch active" id="toggleRimGlow"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Inner Shell</span></div>
+            <div class="toggle-switch active" id="toggleInner"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Outer Shell</span></div>
+            <div class="toggle-switch active" id="toggleOuter"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Waveform Ring</span></div>
+            <div class="toggle-switch active" id="toggleWaveform"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Frequency Bars</span></div>
+            <div class="toggle-switch" id="toggleBars"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Constellation Links</span></div>
+            <div class="toggle-switch active" id="toggleConnections"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Core Particles</span></div>
+            <div class="toggle-switch active" id="toggleParticles"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Deep Field Dust</span></div>
+            <div class="toggle-switch active" id="toggleDeepParticles"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Radial Shockwaves</span></div>
+            <div class="toggle-switch active" id="toggleShockwaves"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Orbiting Rings</span></div>
+            <div class="toggle-switch active" id="toggleRings"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Volumetric Rays</span></div>
+            <div class="toggle-switch" id="toggleLightRays"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Aurora Layer</span></div>
+            <div class="toggle-switch" id="toggleAurora"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Energy Field Shell</span></div>
+            <div class="toggle-switch" id="toggleEnergyField"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="control-label-row"><span>Orbital Toruses</span></div>
+            <div class="toggle-switch" id="toggleOrbitals"></div>
+          </div>
+
+          <div class="control-group" style="margin-top:10px;">
+            <div class="control-label-row"><span>Particle Scale</span><span class="control-val" id="val-particle-size">1.0</span></div>
+            <input type="range" id="particleSizeMult" min="0.5" max="2.5" step="0.05" value="1" />
+          </div>
+
+          <div class="control-group">
+            <div class="control-label-row"><span>Particle Intensity</span><span class="control-val" id="val-particle-brightness">1.0</span></div>
+            <input type="range" id="particleBrightness" min="0.3" max="2.0" step="0.05" value="1" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Spatial Adaptive HUD -->
+    <div class="right-hud">
+      <div class="hud-title"><span>Art Installation HUD</span> <span id="fps-display" style="opacity: 0.85;">-- FPS</span></div>
+      <div class="hud-stage" id="hud-active-stage">Stage: Birth</div>
+      
+      <div class="hud-row">
+        <span class="hud-label">Structure</span>
+        <span class="hud-value" id="hud-val-geom">Icosahedron</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Resonance Frequency</span>
+        <span class="hud-value" id="hud-val-freq">-- Hz (-- Note)</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">BPM / Heartbeat</span>
+        <span class="hud-value" id="hud-val-bpm">-- BPM</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Energy Level</span>
+        <span class="hud-value" id="hud-val-energy">-- %</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Reactive Particles</span>
+        <span class="hud-value" id="hud-val-particles">1500</span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Audio Source</span>
+        <span class="hud-value" id="hud-val-source">File Upload <span id="hud-mic-indicator" style="display:none;" class="indicator-mic"></span></span>
+      </div>
+      <div class="hud-row">
+        <span class="hud-label">Performance Mode</span>
+        <span class="hud-value" id="hud-val-perf">Optimal</span>
+      </div>
+    </div>
+
+    <!-- Bottom Panel - Floating Player Control Bar -->
+    <div class="bottom-panel">
+      <!-- Left segment: Track Info -->
+      <div class="player-left">
+        <div class="marquee-container">
+          <div class="marquee-text" id="track-title-display">Geometric Resonance — Tap Play to Begin</div>
+        </div>
+      </div>
+
+      <!-- Center segment: Player Controls & Timeline -->
+      <div class="player-center">
+        <div class="scrubber-container">
+          <span class="scrubber-time" id="time-current">0:00</span>
+          <div class="scrubber-bar-wrapper" id="timeline-scrubber">
+            <div class="scrubber-bar-bg">
+              <div class="scrubber-bar-fill" id="timeline-fill"></div>
+            </div>
+            <div class="scrubber-handle" id="timeline-handle"></div>
+          </div>
+          <span class="scrubber-time" id="time-total">0:00</span>
+        </div>
+      </div>
+
+      <!-- Right segment: Spatial Export Actions -->
+      <div class="player-right">
+        <!-- Play Button -->
+        <button class="btn btn-circle btn-large" id="playBtn" data-tooltip="Play / Pause (Space)" style="margin-right:8px;">
+          <svg id="playIcon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+        </button>
+
+        <button class="btn btn-rect" id="captureBtn" data-tooltip="Capture High-Res PNG (S)">
+          <svg viewBox="0 0 24 24" style="stroke-width:2;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2 2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Capture
+        </button>
+        
+        <button class="btn btn-rect" id="recordBtn" data-tooltip="Record 15s Clip (R)">
+          <svg viewBox="0 0 24 24" style="stroke-width:2;"><circle cx="12" cy="12" r="10"/><rect x="10" y="10" width="4" height="4"/></svg>
+          Record 15s
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <audio id="audio" crossorigin="anonymous"></audio>
+  <script type="module">
+    import * as THREE from "three";
+    import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+    import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+    import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+    import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+
+    const TAU = Math.PI * 2;
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const fract = (x) => x - Math.floor(x);
+    const hash1 = (n) => fract(Math.sin(n * 12.9898) * 43758.5453123);
+
+    // Global variables for new Spatial generative art features
+    let highpassNode;
+    let micStream, micSource;
+    let storyMode = 'auto';
+    let currentStoryStage = 'birth';
+    let storyTimer = 0;
+    const stageDuration = 35.0; // 35 seconds per stage
+    
+    // Performance metrics
+    let fpsHistory = [];
+    let perfLevel = 'Optimal';
+    let lastFPSCheckTime = 0;
+    
+    // Exhibition Mode
+    let lastInteractionTime = performance.now();
+    let isExhibitionMode = false;
+    
+    // Cursor System
+    const ndcMouse = new THREE.Vector2();
+    const mouse3D = new THREE.Vector3();
+    const smoothMouse3D = new THREE.Vector3();
+    const raycaster = new THREE.Raycaster();
+    const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    let mouseActive = false;
+    let lastMouseMoveTime = 0;
+
+    // Color definitions for Story stages
+    const storyColors = {
+      birth: { primary: '#FFFFFF', secondary: '#E8E8E8', bg: '#020204' },
+      chaos: { primary: '#FF4D4D', secondary: '#FF9F43', bg: '#0B0202' },
+      sync: { primary: '#6C63FF', secondary: '#00D4FF', bg: '#020209' },
+      expansion: { primary: '#00FFF0', secondary: '#4488FF', bg: '#03020A' },
+      harmony: { primary: '#FFD700', secondary: '#00FFB3', bg: '#020504' }
+    };
+
+    
+    // Easing functions for smoother animations
+    const easeOutQuad = (t) => t * (2 - t);
+    const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+    const easeOutExpo = (t) => t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    const easeInOutSine = (t) => -(Math.cos(Math.PI * t) - 1) / 2;
+    const smoothstep = (a, b, t) => { const x = clamp((t - a) / (b - a), 0, 1); return x * x * (3 - 2 * x); };
+    const smootherstep = (a, b, t) => { const x = clamp((t - a) / (b - a), 0, 1); return x * x * x * (x * (x * 6 - 15) + 10); };
+    
+    // Improved noise function with better distribution
+    const hash2 = (x, y) => fract(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453);
+    const hash3 = (x, y, z) => fract(Math.sin(x * 12.9898 + y * 78.233 + z * 45.164) * 43758.5453);
+    
+    // Perlin-like noise interpolation for smoother motion
+    const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+    const gradNoise = (x, y, z) => {
+      const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+      const xf = x - xi, yf = y - yi, zf = z - zi;
+      const u = fade(xf), v = fade(yf), w = fade(zf);
+      
+      const n000 = hash3(xi, yi, zi) * 2 - 1;
+      const n001 = hash3(xi, yi, zi + 1) * 2 - 1;
+      const n010 = hash3(xi, yi + 1, zi) * 2 - 1;
+      const n011 = hash3(xi, yi + 1, zi + 1) * 2 - 1;
+      const n100 = hash3(xi + 1, yi, zi) * 2 - 1;
+      const n101 = hash3(xi + 1, yi, zi + 1) * 2 - 1;
+      const n110 = hash3(xi + 1, yi + 1, zi) * 2 - 1;
+      const n111 = hash3(xi + 1, yi + 1, zi + 1) * 2 - 1;
+      
+      return lerp(
+        lerp(lerp(n000, n100, u), lerp(n010, n110, u), v),
+        lerp(lerp(n001, n101, u), lerp(n011, n111, u), v),
+        w
+      );
+    };
+
+    const config = {
+      form: 'icosahedron', density: 3, sensitivity: 1.2, volume: 0.8, visualMode: 'standard',
+      colorTheme: 'void', colorPrimary: '#ffffff', colorSecondary: '#4488ff', colorBg: '#020204',
+      colorReactivity: 0.55, colorCycle: true, hueRotateSpeed: 0, barLockColors: true,
+      cameraMode: 'orbit', cameraDistance: 35, cameraSpeed: 0.6, cameraShake: 0.45, cameraFov: 60,
+      cameraBeatZoom: true, cameraAutoAngles: false,
+      particleMode: 'vertex', fieldMode: 'harmonic', symmetry: 6, turbulence: 0.25, cohesion: 0.55, particleCount: 1500,
+      bloomStrength: 0.8, bloomRadius: 0.7, trailMode: 'medium', glitchAmount: 0,
+      vignette: 0.35, grain: 0.12, aberration: 0.08, anamorphic: 0, scanlines: 0, filmLook: 'none',
+      environment: 'void', fogDensity: 0.008, ringCount: 3,
+      showInner: true, showOuter: true, showWaveform: true, showBars: false,
+      showConnections: true, showParticles: true, showDeepParticles: true, showShockwaves: true,
+      showWireframeCore: true, showRimGlow: true, showRings: true,
+      particleSizeMult: 1.0, particleBrightness: 1.0,
+      shockwaveIntensity: 0.7, shockwaveImpactThreshold: 0.55, shockwaveCooldown: 0.22,
+      showLightRays: false, showAurora: false, showEnergyField: false, showOrbitals: false,
+      showSpectrum: true, autoPilot: false, beatFlash: true,
+      synesthesia: false, harmonicSnap: true, negativeSpace: false, reactiveBg: true,
+      bgPattern: 'none', bgPatternStrength: 0.35,
+      // NEW: Smoothness control (0 = reactive, 1 = ultra smooth)
+      smoothness: 0.7,
+      // Model motion controls
+      modelSpinEnabled: true,
+      modelSpinSpeed: 1.0,
+      modelSpinAxis: 'xyz',
+      modelSpinReactive: true,
+      modelSpinReactivity: 1.0,
+      modelPulseEnabled: true,
+      modelPulseAmount: 1.0
+    };
+
+    const colorThemes = {
+      void: { primary: '#ffffff', secondary: '#888888', bg: '#020204' },
+      ember: { primary: '#ff6b35', secondary: '#ff2200', bg: '#0a0505' },
+      arctic: { primary: '#88ffff', secondary: '#0066ff', bg: '#020508' },
+      neon: { primary: '#ff00ff', secondary: '#00ffff', bg: '#050008' },
+      sunset: { primary: '#ff8855', secondary: '#ff3366', bg: '#0a0508' },
+      forest:
