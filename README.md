@@ -62,3 +62,25 @@ And if you appreciate the modifications in this specific version, a hat tip to t
 
 **Original Project:** [Kyler Simzer / Geometric Resonance](https://github.com/kylersimzer/Geometric-Resonance)
 **Built with:** three.js & Web Audio API
+
+---
+
+## 📖 Project Understanding (Future Reference)
+
+A single-file, local-first, browser-based audio visualizer. This is a customised version of
+[Kyler Simzer's Geometric Resonance](https://github.com/kylersimzer/Geometric-Resonance), with
+attribution already given in the README — audio never leaves the browser, and the whole app is
+one `index.html` you can download and open, or use live via GitHub Pages.
+
+**Stack:** vanilla HTML/JS/Canvas (likely WebGL/Three.js for rendering), no build step, no
+backend.
+**Status:** small personal modification of an existing open-source tool, deployed via GitHub
+Pages.
+
+## 🎯 Where This Can Be Used
+
+- A standalone offline audio-visualization tool.
+- Reference for canvas/WebGL audio-reactive visual programming.
+- **Hackathons:** works well as a quick "wow factor" visual add-on for a music-tech or
+  creative-coding entry — but since it's a modification of someone else's project, keep Kyler
+  Simzer's attribution intact in anything built from it.
